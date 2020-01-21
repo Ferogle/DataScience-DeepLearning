@@ -1,6 +1,6 @@
 
 # coding: utf-8
-
+# cat classifier
 # # Logistic Regression with a Neural Network mindset
 # 
 # Welcome to your first (required) programming assignment! You will build a logistic regression classifier to recognize  cats. This assignment will step you through how to do this with a Neural Network mindset, and so will also hone your intuitions about deep learning.

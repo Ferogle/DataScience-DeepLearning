@@ -1,6 +1,6 @@
 
 # coding: utf-8
-
+# cat classifier using 2-layer and 4-layer model
 # # Deep Neural Network for Image Classification: Application
 # 
 # When you finish this, you will have finished the last programming assignment of Week 4, and also the last programming assignment of this course! 

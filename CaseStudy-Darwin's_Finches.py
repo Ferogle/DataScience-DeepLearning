@@ -121,3 +121,167 @@ print('2012: slope =', slope_2012,
       'conf int =', slope_conf_int_2012)
 print('2012: intercept =', intercept_2012,
       'conf int =', intercept_conf_int_2012)
+# Make scatter plot of 1975 data
+_ = plt.plot(bl_1975, bd_1975, marker='.',
+             linestyle='none', color='blue', alpha=0.5)
+
+# Make scatter plot of 2012 data
+_ = plt.plot(bl_2012, bd_2012, marker='.',
+             linestyle='none', color='red', alpha=0.5)
+
+# Label axes and make legend
+_ = plt.xlabel('beak length (mm)')
+_ = plt.ylabel('beak depth (mm)')
+_ = plt.legend(('1975', '2012'), loc='upper left')
+
+# Generate x-values for bootstrap lines: x
+x = np.array([10, 17])
+
+# Plot the bootstrap lines
+for i in range(100):
+    plt.plot(x,bs_slope_reps_1975[i]*x+bs_intercept_reps_1975[i],
+             linewidth=0.5, alpha=0.2, color='blue')
+    plt.plot(x,bs_slope_reps_2012[i]*x+bs_intercept_reps_2012[i],
+             linewidth=0.5, alpha=0.2, color='red')
+
+# Draw the plot again
+plt.show()
+
+# Compute length-to-depth ratios
+ratio_1975 = np.divide(bl_1975,bd_1975)
+ratio_2012 = np.divide(bl_2012,bd_2012)
+
+# Compute means
+mean_ratio_1975 = np.mean(ratio_1975)
+mean_ratio_2012 = np.mean(ratio_2012)
+
+# Generate bootstrap replicates of the means
+bs_replicates_1975 = draw_bs_reps(ratio_1975,np.mean,size=10000)
+bs_replicates_2012 = draw_bs_reps(ratio_2012,np.mean,size=10000)
+
+# Compute the 99% confidence intervals
+conf_int_1975 = np.percentile(bs_replicates_1975,[0.5,99.5])
+conf_int_2012 = np.percentile(bs_replicates_2012,[0.5,99.5])
+
+# Print the results
+print('1975: mean ratio =', mean_ratio_1975,
+      'conf int =', conf_int_1975)
+print('2012: mean ratio =', mean_ratio_2012,
+      'conf int =', conf_int_2012)
+'''The array bd_parent_scandens contains the average beak depth (in mm) of two parents of the species G. scandens. 
+The array bd_offspring_scandens contains the average beak depth of the offspring of the respective parents. 
+The arrays bd_parent_fortis and bd_offspring_fortis contain the same information about measurements from G. fortis birds.'''
+
+# Make scatter plots
+_ = plt.plot(bd_parent_fortis, bd_offspring_fortis,
+             marker='.', linestyle='none', color='blue', alpha=0.5)
+_ = plt.plot(bd_parent_scandens, bd_offspring_scandens,
+             marker='.', linestyle='none', color='red', alpha=0.5)
+
+# Label axes
+_ = plt.xlabel('parental beak depth (mm)')
+_ = plt.ylabel('offspring beak depth (mm)')
+
+# Add legend
+_ = plt.legend(('G. fortis', 'G. scandens'), loc='lower right')
+
+# Show plot
+plt.show()
+'''It appears as though there is a stronger correlation in G. fortis than in G. scandens. 
+This suggests that beak depth is more strongly inherited in G. fortis. We'll quantify this correlation next.'''
+
+'''In an effort to quantify the correlation between offspring and parent beak depths, we would like to compute statistics, 
+such as the Pearson correlation coefficient, between parents and offspring. 
+To get confidence intervals on this, we need to do a pairs bootstrap.'''
+
+def draw_bs_pairs(x, y, func, size=1):
+    """Perform pairs bootstrap for a single statistic."""
+
+    # Set up array of indices to sample from: inds
+    inds = np.arange(len(x))
+
+    # Initialize replicates: bs_replicates
+    bs_replicates = np.empty(size)
+
+    # Generate replicates
+    for i in range(size):
+        bs_inds = np.random.choice(inds,size=len(inds))
+        bs_x, bs_y = x[bs_inds],y[bs_inds]
+        bs_replicates[i] = func(bs_x,bs_y)
+
+    return bs_replicates
+  
+  # Compute the Pearson correlation coefficients
+r_scandens = pearson_r(bd_parent_scandens,bd_offspring_scandens)
+r_fortis = pearson_r(bd_parent_fortis,bd_offspring_fortis)
+
+# Acquire 1000 bootstrap replicates of Pearson r
+bs_replicates_scandens = draw_bs_pairs(bd_parent_scandens,bd_offspring_scandens,pearson_r,size=1000)
+
+bs_replicates_fortis = draw_bs_pairs(bd_parent_fortis,bd_offspring_fortis,pearson_r,size=1000)
+
+
+# Compute 95% confidence intervals
+conf_int_scandens = np.percentile(bs_replicates_scandens,[2.5,97.5])
+conf_int_fortis = np.percentile(bs_replicates_fortis,[2.5,97.5])
+
+# Print results
+print('G. scandens:', r_scandens, conf_int_scandens)
+print('G. fortis:', r_fortis, conf_int_fortis)
+
+'''It is clear from the confidence intervals that beak depth of the offspring of G. fortis 
+parents is more strongly correlated with their offspring than their G. scandens counterparts.'''
+
+def heritability(parents, offspring):
+    """Compute the heritability from parent and offspring samples."""
+    covariance_matrix = np.cov(parents, offspring)
+    return covariance_matrix[0][1] / covariance_matrix[0][0] 
+
+# Compute the heritability
+heritability_scandens = heritability(bd_parent_scandens, bd_offspring_scandens)
+heritability_fortis = heritability(bd_parent_fortis,bd_offspring_fortis)
+
+# Acquire 1000 bootstrap replicates of heritability
+replicates_scandens = draw_bs_pairs(bd_parent_scandens, bd_offspring_scandens,
+heritability,size=1000)
+        
+replicates_fortis = draw_bs_pairs(bd_parent_fortis, bd_offspring_fortis,
+heritability,size=1000)
+
+
+# Compute 95% confidence intervals
+conf_int_scandens = np.percentile(replicates_scandens,[2.5,97.5])
+conf_int_fortis = np.percentile(replicates_fortis,[2.5,97.5])
+
+# Print results
+print('G. scandens:', heritability_scandens, conf_int_scandens)
+print('G. fortis:', heritability_fortis, conf_int_fortis)
+
+'''Here again, we see that G. fortis has stronger heritability than G. scandens. 
+This suggests that the traits of G. fortis may be strongly incorporated into G. scandens by introgressive hybridization.'''
+'''Remember that the Pearson correlation coefficient is the ratio of the covariance to the 
+geometric mean of the variances of the two data sets. 
+This is a measure of the correlation between parents and offspring, but might not be the best estimate of heritability. 
+If we stop and think, it makes more sense to define heritability as the ratio of the covariance 
+between parent and offspring to the variance of the parents alone.'''
+# Initialize array of replicates: perm_replicates
+perm_replicates = np.empty(10000)
+
+# Draw replicates
+for i in range(10000):
+    # Permute parent beak depths
+    bd_parent_permuted = np.random.permutation(bd_parent_scandens)
+    perm_replicates[i] = heritability(bd_parent_permuted,bd_offspring_scandens)
+
+
+# Compute p-value: p
+p = np.sum(perm_replicates>= heritability_scandens) / len(perm_replicates)
+
+# Print the p-value
+print('p-val =', p)
+'''You get a p-value of zero, which means that none of the 10,000 permutation pairs replicates 
+you drew had a heritability high enough to match that which was observed. 
+This strongly suggests that beak depth is heritable in G. scandens, 
+just not as much as in G. fortis. If you like, you can plot a histogram of the heritability replicates 
+to get a feel for how extreme of a value of heritability you might expect by chance.'''
+
